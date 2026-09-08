@@ -2,6 +2,16 @@
 
 All notable changes to NavigoGrade are documented in this file.
 
+## [0.5.0-beta.1]
+
+Packaging and continuous-integration beta candidate.
+
+- Added modern `pyproject.toml` packaging metadata for Python 3.10 and newer.
+- Added `navigograde` and `navigograde-gui` installed console commands.
+- Added a minimal GitHub Actions test matrix for supported Python versions.
+- Documented local installation and installed CLI and GUI usage.
+- Kept grading, planning, domain, and GUI behavior unchanged.
+
 ## [0.4.0-beta.1]
 
 Polished beta candidate.

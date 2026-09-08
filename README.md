@@ -7,7 +7,7 @@ minimal practical plan for acquiring additional competencies and improving
 existing competency levels. It includes both a terminal interface and a simple
 Tkinter graphical interface.
 
-> **Beta candidate warning:** `v0.4.0-beta.1` is a pre-release version. Results
+> **Beta warning:** `v0.5.0-beta.1` is a pre-release version. Results
 > should be checked against the current school statute before they are used for
 > an important decision.
 
@@ -34,10 +34,16 @@ cd NavigoGrade
 Depending on your system, the Python command may be `python3` instead of
 `python`.
 
+Install NavigoGrade locally:
+
+```bash
+python -m pip install .
+```
+
 ### Terminal interface
 
 ```bash
-python main.py
+navigograde
 ```
 
 Enter the six values shown by the prompt, or press Enter to switch to guided
@@ -48,8 +54,11 @@ input.
 Launch the Tkinter interface with:
 
 ```bash
-python -m navigator_grade.gui
+navigograde-gui
 ```
+
+You can also run directly from a source checkout with `python main.py` for the
+CLI or `python -m navigator_grade.gui` for the GUI.
 
 In the GUI, empty level fields are treated as zero. The total number of
 competencies and the target grade are still required.
@@ -159,9 +168,9 @@ percentage and average always use only competencies evaluated so far.
 - The GUI is an intentionally simple presentation layer over the same
   calculator used by the terminal application.
 
-## Run the tests
+## Development
 
-From the project directory:
+Run the complete test suite from the project directory:
 
 ```bash
 python -m unittest discover -s tests
