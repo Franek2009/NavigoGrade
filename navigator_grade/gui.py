@@ -23,6 +23,20 @@ from .cli import _format_future_outlook, _format_upgrade, _polish_plural
 from .rules import GRADE_REQUIREMENTS
 
 
+def parse_gui_input(
+    total_text: str,
+    level_texts: tuple[str, str, str, str],
+    target_text: str,
+) -> tuple[CompetencyRecord, int]:
+    """Convert GUI field text into the existing domain model."""
+    total_overall = int(total_text.strip())
+    levels = tuple(int(text.strip()) if text.strip() else 0 for text in level_texts)
+    target_grade = int(target_text.strip())
+    if target_grade not in GRADE_REQUIREMENTS:
+        raise ValueError("target grade must be from 2 to 6")
+    return CompetencyRecord(total_overall, *levels), target_grade
+
+
 def format_results(record: CompetencyRecord, target_grade: int) -> str:
     """Format calculator results for the GUI without creating any widgets."""
     analysis = analyze_grade(target_grade, record)
@@ -142,9 +156,11 @@ class NavigoGradeApp:
 
     def calculate(self) -> None:
         try:
-            values = [int(entry.get().strip()) for entry in self.entries]
-            target_grade = int(self.target.get())
-            record = CompetencyRecord(values[0], *values[1:])
+            record, target_grade = parse_gui_input(
+                self.entries[0].get(),
+                tuple(entry.get() for entry in self.entries[1:]),
+                self.target.get(),
+            )
             result = format_results(record, target_grade)
         except (TypeError, ValueError) as error:
             messagebox.showerror(

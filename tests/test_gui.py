@@ -1,7 +1,29 @@
 import unittest
 
 from navigator_grade.calculator import CompetencyRecord
-from navigator_grade.gui import format_results
+from navigator_grade.gui import format_results, parse_gui_input
+
+
+class GuiInputParsingTests(unittest.TestCase):
+    def test_all_empty_level_fields_become_zero(self) -> None:
+        record, grade = parse_gui_input("10", ("", "", "", ""), "4")
+        self.assertEqual(record.level_counts, (0, 0, 0, 0))
+        self.assertEqual(grade, 4)
+
+    def test_some_empty_level_fields_become_zero(self) -> None:
+        record, grade = parse_gui_input("12", ("", "2", "", "5"), "6")
+        self.assertEqual(record.level_counts, (0, 2, 0, 5))
+        self.assertEqual(grade, 6)
+
+    def test_non_numeric_non_empty_level_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_gui_input("10", ("", "abc", "2", "3"), "5")
+
+    def test_total_and_target_remain_required(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_gui_input("", ("", "", "", ""), "5")
+        with self.assertRaises(ValueError):
+            parse_gui_input("10", ("", "", "", ""), "")
 
 
 class GuiResultFormattingTests(unittest.TestCase):

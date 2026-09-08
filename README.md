@@ -42,6 +42,9 @@ Launch the first graphical interface with:
 python -m navigator_grade.gui
 ```
 
+In the GUI, empty level fields are treated as zero. The total number of
+competencies and the target grade are still required.
+
 The terminal interface remains available through `python main.py`.
 
 ## Input
