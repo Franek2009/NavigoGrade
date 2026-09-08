@@ -1,85 +1,129 @@
 from .calculator import (
     CompetencyRecord,
+    UpgradeOption,
     acquisition_percentage,
+    analyze_grade,
     average_competency_level,
-    grade_requirements_met,
+    highest_grade_met,
 )
 from .rules import GRADE_REQUIREMENTS
 
 
-def _read_non_negative_integer(prompt: str) -> int:
+def _read_positive_integer(prompt: str) -> int:
     while True:
         try:
             value = int(input(prompt))
-            if value < 0:
+            if value <= 0:
                 raise ValueError
             return value
         except ValueError:
-            print("Enter a non-negative whole number.")
+            print("Wpisz dodatnią liczbę całkowitą.")
 
 
-def _read_target_grade() -> int:
+def _read_bounded_integer(prompt: str, minimum: int, maximum: int) -> int:
     while True:
         try:
-            grade = int(input("Target final grade (2-6): "))
-            if grade not in GRADE_REQUIREMENTS:
+            value = int(input(prompt))
+            if not minimum <= value <= maximum:
                 raise ValueError
-            return grade
+            return value
         except ValueError:
-            print("Enter a grade from 2 to 6.")
+            print(f"Wpisz liczbę całkowitą od {minimum} do {maximum}.")
+
+
+def _read_levels(total_realized: int) -> tuple[int, int, int, int]:
+    while True:
+        try:
+            values = tuple(int(value) for value in input("Poziomy [0 1 2 3]: ").split())
+            if len(values) != 4 or any(value < 0 for value in values):
+                raise ValueError
+            if sum(values) > total_realized:
+                print("Liczba zdobytych kompetencji nie może przekraczać wszystkich.")
+                continue
+            return values  # type: ignore[return-value]
+        except ValueError:
+            print("Wpisz cztery nieujemne liczby całkowite oddzielone spacjami.")
+
+
+def _format_upgrade(option: UpgradeOption) -> str:
+    parts = []
+    for from_level, count in option.upgrades:
+        noun = "kompetencję" if count == 1 else "kompetencje"
+        parts.append(f"{count} {noun} z poziomu {from_level} na 3")
+    return " oraz ".join(parts)
 
 
 def run() -> None:
-    print("NavigoGrade")
-    total_realized = _read_non_negative_integer(
-        "Competencies realized in the course/year: "
-    )
-    while total_realized == 0:
-        print("The number realized must be greater than zero.")
-        total_realized = _read_non_negative_integer(
-            "Competencies realized in the course/year: "
+    print("NavigoGrade\n")
+    total_realized = _read_positive_integer("Liczba kompetencji: ")
+    levels = _read_levels(total_realized)
+    acquired = sum(levels)
+
+    if acquired == total_realized:
+        attempted = acquired
+    else:
+        attempted = _read_bounded_integer(
+            f"Liczba kompetencji, do których przystąpiono [{acquired}-{total_realized}]: ",
+            acquired,
+            total_realized,
         )
-    attempted = _read_non_negative_integer("Competencies attempted by the student: ")
-    level_counts = {
-        level: _read_non_negative_integer(
-            f"Acquired competencies at level {level}: "
-        )
-        for level in range(4)
-    }
-    target_grade = _read_target_grade()
+
+    target_grade = _read_bounded_integer("Cel: ", 2, 6)
+    record = CompetencyRecord(total_realized, attempted, *levels)
+    analysis = analyze_grade(target_grade, record)
+    average = average_competency_level(record)
+    current_grade = highest_grade_met(record)
     requirement = GRADE_REQUIREMENTS[target_grade]
 
-    try:
-        record = CompetencyRecord(
-            total_realized=total_realized,
-            attempted=attempted,
-            level_0=level_counts[0],
-            level_1=level_counts[1],
-            level_2=level_counts[2],
-            level_3=level_counts[3],
-        )
-        percentage = acquisition_percentage(record)
-        average = (
-            average_competency_level(record)
-            if requirement.minimum_average_level is not None
-            else None
-        )
-        meets_requirements = grade_requirements_met(target_grade, record)
-    except ValueError as error:
-        print(f"\nCannot calculate result: {error}.")
-        return
-
-    print(f"\nAcquired competencies: {record.acquired}")
-    print(f"Acquisition percentage: {percentage:.2f}%")
+    current_grade_text = str(current_grade) if current_grade is not None else "poniżej 2"
+    average_text = f"{average:.2f}" if average is not None else "brak"
+    print(f"\nObecnie: {current_grade_text}")
     print(
-        f"Grade {target_grade} requires at least "
-        f"{requirement.minimum_acquisition_percentage:g}% acquired."
+        f"Zdobyte: {record.acquired}/{record.total_realized} "
+        f"({acquisition_percentage(record):.0f}%)"
     )
-    if average is not None:
-        print(f"Average competency level: {average:.2f}")
+    print(f"Średnia: {average_text}")
+    print(f"\nDo oceny {target_grade}:")
+
+    acquisition_mark = "✓" if analysis.acquisition_requirement_met else "✗"
+    print(
+        f"{acquisition_mark} wymagane "
+        f"{requirement.minimum_acquisition_percentage:g}% kompetencji"
+    )
+    if analysis.average_requirement_met is not None:
+        average_mark = "✓" if analysis.average_requirement_met else "✗"
         print(
-            "It also requires an average competency level of at least "
-            f"{requirement.minimum_average_level:.2f}."
+            f"{average_mark} wymagana średnia "
+            f"{requirement.minimum_average_level:.2f}"
         )
-    result = "meets" if meets_requirements else "does not meet"
-    print(f"Result: the student {result} the requirements for grade {target_grade}.")
+
+    if analysis.additional_acquired_needed:
+        competency_word = (
+            "dodatkowej kompetencji"
+            if analysis.additional_acquired_needed == 1
+            else "dodatkowych kompetencji"
+        )
+        print(
+            f"\nBrakuje zdobycia {analysis.additional_acquired_needed} "
+            f"{competency_word}."
+        )
+
+    if analysis.missing_level_points:
+        print(f"\nBrakuje: {analysis.missing_level_points} punktów poziomu.")
+        if analysis.upgrade_options:
+            print("\nNajprościej:")
+            print(f"→ {_format_upgrade(analysis.upgrade_options[0])}")
+            if len(analysis.upgrade_options) > 1:
+                print("\nAlternatywnie:")
+                for option in analysis.upgrade_options[1:]:
+                    print(f"→ {_format_upgrade(option)}")
+        else:
+            print("Nie można uzyskać tych punktów przez podniesienie istniejących poziomów.")
+    elif analysis.average_requirement_met is False and average is None:
+        print("\nNie można obliczyć średniej bez podjętych kompetencji.")
+
+    if (
+        analysis.acquisition_requirement_met
+        and analysis.average_requirement_met is not False
+    ):
+        print(f"\nSpełniasz wymagania na ocenę {target_grade}.")

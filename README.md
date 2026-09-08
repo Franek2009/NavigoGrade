@@ -54,27 +54,36 @@ From the project directory, run:
 python main.py
 ```
 
-Enter the requested counts and a target grade from 2 through 6.
+Enter the total, four level counts on one line, and a target grade from 2 through
+6. When all realized competencies are acquired, `attempted` is inferred safely
+and the normal workflow takes three input lines. If fewer competencies are
+acquired than realized, the CLI asks for `attempted` separately.
 
 ### Example
 
 ```text
 $ python main.py
 NavigoGrade
-Competencies realized in the course/year: 20
-Competencies attempted by the student: 16
-Acquired competencies at level 0: 0
-Acquired competencies at level 1: 1
-Acquired competencies at level 2: 5
-Acquired competencies at level 3: 10
-Target final grade (2-6): 4
 
-Acquired competencies: 16
-Acquisition percentage: 80.00%
-Grade 4 requires at least 75% acquired.
-Average competency level: 2.56
-It also requires an average competency level of at least 1.95.
-Result: the student meets the requirements for grade 4.
+Liczba kompetencji: 12
+Poziomy [0 1 2 3]: 0 1 3 8
+Cel: 6
+
+Obecnie: 5
+Zdobyte: 12/12 (100%)
+Średnia: 2.58
+
+Do oceny 6:
+✓ wymagane 90% kompetencji
+✗ wymagana średnia 2.70
+
+Brakuje: 2 punktów poziomu.
+
+Najprościej:
+→ 1 kompetencję z poziomu 1 na 3
+
+Alternatywnie:
+→ 2 kompetencje z poziomu 2 na 3
 ```
 
 ## Run the tests

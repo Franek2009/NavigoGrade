@@ -3,8 +3,10 @@ import unittest
 from navigator_grade.calculator import (
     CompetencyRecord,
     acquisition_percentage,
+    analyze_grade,
     average_competency_level,
     grade_requirements_met,
+    highest_grade_met,
 )
 from navigator_grade.rules import GRADE_REQUIREMENTS, GradeRequirement
 
@@ -146,6 +148,72 @@ class CalculationTests(unittest.TestCase):
             with self.subTest(grade=grade):
                 with self.assertRaises(ValueError):
                     grade_requirements_met(grade, record)  # type: ignore[arg-type]
+
+
+class RecommendationTests(unittest.TestCase):
+    def test_example_reports_two_missing_points_and_minimal_options(self) -> None:
+        record = CompetencyRecord(12, 12, 0, 1, 3, 8)
+
+        analysis = analyze_grade(6, record)
+
+        self.assertTrue(analysis.acquisition_requirement_met)
+        self.assertFalse(analysis.average_requirement_met)
+        self.assertEqual(analysis.additional_acquired_needed, 0)
+        self.assertEqual(analysis.required_level_sum, 33)
+        self.assertEqual(analysis.missing_level_points, 2)
+        self.assertEqual(analysis.upgrade_options[0].upgrades, ((1, 1),))
+        self.assertEqual(analysis.upgrade_options[1].upgrades, ((2, 2),))
+
+    def test_percentage_deficit_uses_ceiling(self) -> None:
+        record = CompetencyRecord(12, 10, 0, 0, 0, 10)
+
+        analysis = analyze_grade(6, record)
+
+        self.assertFalse(analysis.acquisition_requirement_met)
+        self.assertEqual(analysis.additional_acquired_needed, 1)
+
+    def test_no_upgrade_ever_uses_level_three_as_a_source(self) -> None:
+        record = CompetencyRecord(5, 5, 0, 1, 1, 3)
+
+        analysis = analyze_grade(6, record)
+
+        for option in analysis.upgrade_options:
+            self.assertTrue(all(level < 3 for level, _ in option.upgrades))
+
+    def test_options_prefer_fewer_changed_competencies(self) -> None:
+        record = CompetencyRecord(12, 12, 1, 1, 3, 7)
+
+        analysis = analyze_grade(6, record)
+
+        changed_counts = [
+            option.competencies_changed for option in analysis.upgrade_options
+        ]
+        self.assertEqual(changed_counts, sorted(changed_counts))
+
+    def test_grade_two_analysis_has_no_average_deficit(self) -> None:
+        record = CompetencyRecord(20, 11, 11, 0, 0, 0)
+
+        analysis = analyze_grade(2, record)
+
+        self.assertTrue(analysis.acquisition_requirement_met)
+        self.assertIsNone(analysis.average_requirement_met)
+        self.assertIsNone(analysis.required_level_sum)
+        self.assertIsNone(analysis.missing_level_points)
+        self.assertEqual(analysis.upgrade_options, ())
+
+    def test_zero_attempts_has_no_numeric_average_recommendation(self) -> None:
+        record = CompetencyRecord(5, 0, 0, 0, 0, 0)
+
+        analysis = analyze_grade(3, record)
+
+        self.assertFalse(analysis.average_requirement_met)
+        self.assertIsNone(analysis.required_level_sum)
+        self.assertIsNone(analysis.missing_level_points)
+        self.assertEqual(analysis.upgrade_options, ())
+
+    def test_highest_grade_met_matches_example(self) -> None:
+        record = CompetencyRecord(12, 12, 0, 1, 3, 8)
+        self.assertEqual(highest_grade_met(record), 5)
 
 
 if __name__ == "__main__":
