@@ -14,3 +14,7 @@ First public alpha release.
 - Added validation for competency counts, relationships, and target grades.
 - Added automated coverage for grading boundaries, validation, CLI behavior,
   recommendation ranking, and combined-plan optimization.
+- Corrected the domain model so level 0 means evaluated but not acquired, and
+  current percentage and average calculations use evaluated competencies.
+- Removed attempted-competency input and distinguished existing level-0,
+  existing acquired, and future competency actions in recommendations.

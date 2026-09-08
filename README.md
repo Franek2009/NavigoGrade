@@ -16,9 +16,10 @@ endorsed by the school.
 ## Requirements
 
 - Python 3.10 or newer
-- A terminal
+- A terminal for the CLI
+- Tkinter for the graphical interface (normally included with Python)
 
-The project uses only the Python standard library. There is currently no GUI.
+The project uses only the Python standard library.
 
 ## Install and run
 
@@ -33,10 +34,20 @@ python main.py
 Depending on your system, the Python command may be `python3` instead of
 `python`.
 
+### Run the GUI
+
+Launch the first graphical interface with:
+
+```bash
+python -m navigator_grade.gui
+```
+
+The terminal interface remains available through `python main.py`.
+
 ## Input
 
-The fastest input format contains the total number of realized competencies,
-the acquired counts at levels 0 through 3, and the target grade:
+The fastest input format contains the expected total number of competencies,
+the evaluated counts at levels 0 through 3, and the target grade:
 
 ```text
 wszystkie | poziom 0 | poziom 1 | poziom 2 | poziom 3 | cel
@@ -48,24 +59,15 @@ Example:
 12 | 0 | 1 | 3 | 8 | 6
 ```
 
-Spaces can be used instead of `|` separators. When not all competencies are
-acquired, also provide the number attempted:
-
-```text
-wszystkie | przystąpiono | poziom 0 | poziom 1 | poziom 2 | poziom 3 | cel
-20 | 16 | 0 | 1 | 5 | 10 | 4
-```
+Spaces can be used instead of `|` separators.
 
 Press Enter at the initial `>` prompt to use the guided input flow instead:
 
 ```text
 Wszystkich kompetencji: 10
 Poziomy 0 1 2 3: 0 4 2 2
-Przystąpiono [10]:
 Cel: 5
 ```
-
-Pressing Enter at `Przystąpiono` accepts the displayed default.
 
 ## Grading rules
 
@@ -79,23 +81,27 @@ The student must meet every requirement listed for the selected grade:
 | 5 | 80% | 2.25 |
 | 6 | 90% | 2.70 |
 
-Grade 2 has no average-level requirement. An acquired competency may be at any
-level from 0 through 3, so level 0 counts as acquired.
+Grade 2 has no average-level requirement. Level 0 means that a competency was
+evaluated but not acquired. Levels 1, 2, and 3 are acquired competencies.
 
 The calculations are:
 
-- acquisition percentage = acquired / total realized × 100;
-- average level = weighted sum of acquired competency levels / attempted.
+- evaluated = level 0 + level 1 + level 2 + level 3;
+- acquired = level 1 + level 2 + level 3;
+- acquisition percentage = acquired / evaluated × 100;
+- average level = weighted sum of all evaluated competency levels / evaluated.
 
 The application keeps these counts distinct:
 
-- `total_realized`: all competencies realized in the course or school year;
-- `attempted`: competencies the student attempted;
-- `acquired`: the sum of acquired competencies at levels 0, 1, 2, and 3.
+- `total_overall`: the expected total number of competencies for the whole
+  course or school year;
+- `evaluated`: competencies that have occurred so far, including level 0;
+- `acquired`: evaluated competencies at levels 1, 2, and 3;
+- `remaining_future`: competencies expected later in the course or school year.
 
-Input must satisfy `acquired <= attempted <= total_realized`. This is a data
-consistency rule inferred from the meanings of the terms, not a separate grading
-threshold explicitly stated in the statute.
+Input must satisfy `evaluated <= total_overall`. Current grade calculations use
+only evaluated competencies. The overall total is used by recommendation
+planning to determine whether future competencies are available.
 
 ## Current limitations
 
@@ -103,8 +109,9 @@ threshold explicitly stated in the statute.
 - The application relies on aggregate counts entered manually by the user.
 - Recommendations are mathematical plans based on the configured rules; they do
   not predict how or when a competency can be reassessed.
-- The interface is terminal-based and currently written in Polish.
-- There is no GUI.
+- The interfaces are currently written in Polish.
+- The GUI is an early, intentionally simple presentation layer over the same
+  calculator used by the terminal application.
 
 ## Run the tests
 
