@@ -7,7 +7,7 @@ minimal practical plan for acquiring additional competencies and improving
 existing competency levels. It includes both a terminal interface and a simple
 Tkinter graphical interface.
 
-> **Beta warning:** `v0.5.0-beta.1` is a pre-release version. Results
+> **Release candidate warning:** `v0.9.0-rc.1` is a pre-release version. Results
 > should be checked against the current school statute before they are used for
 > an important decision.
 
@@ -160,7 +160,8 @@ percentage and average always use only competencies evaluated so far.
 
 ## Current limitations
 
-- This is a beta candidate and may still contain defects or incomplete wording.
+- This is a release candidate and may still contain defects or incomplete
+  wording.
 - The application relies on aggregate counts entered manually by the user.
 - Recommendations are mathematical plans based on the configured rules; they do
   not predict how or when a competency can be reassessed.

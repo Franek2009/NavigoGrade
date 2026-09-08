@@ -2,6 +2,16 @@
 
 All notable changes to NavigoGrade are documented in this file.
 
+## [0.9.0-rc.1]
+
+Release-candidate audit.
+
+- Verified documentation, packaging metadata, MIT licensing, console entry
+  points, and GitHub Actions configuration.
+- Verified clean installation, source-distribution contents, Python compilation,
+  and the complete automated test suite.
+- Confirmed that no grading, planning, domain, CLI, or GUI behavior changed.
+
 ## [0.5.0-beta.1]
 
 Packaging and continuous-integration beta candidate.

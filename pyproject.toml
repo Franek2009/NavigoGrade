@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "NavigoGrade"
-version = "0.5.0b1"
+version = "0.9.0rc1"
 description = "Grade eligibility and improvement planning for Navigo competencies"
 readme = "README.md"
 requires-python = ">=3.10"
