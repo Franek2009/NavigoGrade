@@ -22,6 +22,12 @@ class GuiResultFormattingTests(unittest.TestCase):
         self.assertIn("Co trzeba poprawić", result)
         self.assertIn("Najprościej", result)
 
+    def test_shows_maintenance_and_next_grade_motivation(self) -> None:
+        result = format_results(CompetencyRecord(14, 0, 0, 0, 8), 5)
+        self.assertIn("Aby utrzymać 5:", result)
+        self.assertIn("Do oceny 6 brakuje:", result)
+        self.assertIn("obecnie spełniasz wymagania; plan końcowy", result)
+
 
 if __name__ == "__main__":
     unittest.main()

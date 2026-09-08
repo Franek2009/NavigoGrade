@@ -77,6 +77,30 @@ class GradeAnalysis:
     upgrade_options: tuple[UpgradeOption, ...]
 
 
+@dataclass(frozen=True)
+class FuturePlan:
+    """A feasible final-year state and the actions needed to reach it."""
+
+    future_levels: tuple[int, int, int, int]
+    upgrades: tuple[tuple[int, int, int], ...]
+    action_count: int
+    final_acquisition_percentage: float
+    final_average_level: float
+    final_level_sum: int
+
+
+@dataclass(frozen=True)
+class FutureOutlook:
+    """Future plan for the target and, when available, the next grade."""
+
+    target_grade: int
+    target_currently_met: bool
+    target_plan: FuturePlan | None
+    next_grade: int | None
+    next_grade_analysis: GradeAnalysis | None
+    next_grade_plan: FuturePlan | None
+
+
 def acquisition_percentage(record: CompetencyRecord) -> float | None:
     if record.evaluated == 0:
         return None
@@ -223,6 +247,160 @@ def _minimum_plans(
             return tuple(_to_option(plan) for _, plan in ordered[:limit])
         layer = next_layer
     return ()
+
+
+def _future_distributions(count: int):
+    for level_0 in range(count + 1):
+        for level_1 in range(count - level_0 + 1):
+            for level_2 in range(count - level_0 - level_1 + 1):
+                level_3 = count - level_0 - level_1 - level_2
+                yield level_0, level_1, level_2, level_3
+
+
+def _minimum_existing_plan(
+    current: tuple[int, int, int, int],
+    future: tuple[int, int, int, int],
+    requirement: GradeRequirement,
+) -> ActionPlan | None:
+    def final_state(state):
+        return tuple(state[index] + future[index] for index in range(4))
+
+    if _state_meets(final_state(current), requirement):
+        return ()
+
+    layer: dict[tuple[int, int, int, int], set[ActionPlan]] = {current: {()}}
+    seen_depth = {current: 0}
+    depth = 0
+    while layer:
+        depth += 1
+        next_layer: dict[tuple[int, int, int, int], set[ActionPlan]] = defaultdict(set)
+        goals: list[tuple[tuple[int, int, int, int], ActionPlan]] = []
+        for state, plans in layer.items():
+            for next_state, action in _next_states(state, sum(current)):
+                if action[0] == "future":
+                    continue
+                previous_depth = seen_depth.get(next_state)
+                if previous_depth is not None and previous_depth < depth:
+                    continue
+                seen_depth[next_state] = depth
+                for plan in plans:
+                    next_plan = _add_action(plan, action)
+                    next_layer[next_state].add(next_plan)
+                    if _state_meets(final_state(next_state), requirement):
+                        goals.append((next_state, next_plan))
+        if goals:
+            def excess(item):
+                state, _ = item
+                final = final_state(state)
+                required = (
+                    _ceiling_product(requirement.minimum_average_level, sum(final))
+                    if requirement.minimum_average_level is not None
+                    else 0
+                )
+                return sum(level * count for level, count in enumerate(final)) - required
+
+            return min(goals, key=lambda item: (excess(item), item[1]))[1]
+        layer = next_layer
+    return None
+
+
+def _make_future_plan(
+    record: CompetencyRecord,
+    future: tuple[int, int, int, int],
+    plan: ActionPlan,
+) -> FuturePlan:
+    option = _to_option(plan)
+    final_levels = list(record.level_counts)
+    for source, target, count in option.upgrades:
+        final_levels[source] -= count
+        final_levels[target] += count
+    final_levels = [final_levels[index] + future[index] for index in range(4)]
+    evaluated = sum(final_levels)
+    acquired = sum(final_levels[1:])
+    level_sum = sum(level * count for level, count in enumerate(final_levels))
+    return FuturePlan(
+        future,
+        option.upgrades,
+        sum(future[1:]) + option.competencies_changed,
+        acquired / evaluated * 100,
+        level_sum / evaluated,
+        level_sum,
+    )
+
+
+def _reach_plan(record: CompetencyRecord, target_grade: int) -> FuturePlan | None:
+    requirement = _requirement_for(target_grade)
+    candidates: list[FuturePlan] = []
+    for future in _future_distributions(record.remaining_future):
+        existing_plan = _minimum_existing_plan(
+            record.level_counts, future, requirement
+        )
+        if existing_plan is not None:
+            candidates.append(_make_future_plan(record, future, existing_plan))
+    if not candidates:
+        return None
+
+    def rank(plan: FuturePlan):
+        required_sum = (
+            _ceiling_product(requirement.minimum_average_level, record.total_overall)
+            if requirement.minimum_average_level is not None
+            else 0
+        )
+        return (
+            plan.action_count,
+            plan.final_level_sum - required_sum,
+            len(plan.upgrades) + sum(count > 0 for count in plan.future_levels),
+            plan.future_levels[3],
+            plan.future_levels[2],
+            plan.future_levels[1],
+            plan.upgrades,
+        )
+
+    return min(candidates, key=rank)
+
+
+def _maintenance_plan(record: CompetencyRecord, target_grade: int) -> FuturePlan | None:
+    requirement = _requirement_for(target_grade)
+    candidates = []
+    for future in _future_distributions(record.remaining_future):
+        final = tuple(
+            record.level_counts[index] + future[index] for index in range(4)
+        )
+        if _state_meets(final, requirement):
+            candidates.append(_make_future_plan(record, future, ()))
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda plan: (
+            sum(level * count for level, count in enumerate(plan.future_levels)),
+            plan.future_levels[3],
+            plan.future_levels[2],
+            sum(plan.future_levels[1:]),
+        ),
+    )
+
+
+def future_outlook(target_grade: int, record: CompetencyRecord) -> FutureOutlook:
+    """Simulate the full course/year for target maintenance and advancement."""
+    _requirement_for(target_grade)
+    target_met = grade_requirements_met(target_grade, record)
+    target_plan = (
+        _maintenance_plan(record, target_grade)
+        if target_met
+        else _reach_plan(record, target_grade)
+    )
+    next_grade = target_grade + 1 if target_grade < max(GRADE_REQUIREMENTS) else None
+    next_analysis = analyze_grade(next_grade, record) if next_grade is not None else None
+    next_plan = _reach_plan(record, next_grade) if next_grade is not None else None
+    return FutureOutlook(
+        target_grade,
+        target_met,
+        target_plan,
+        next_grade,
+        next_analysis,
+        next_plan,
+    )
 
 
 def analyze_grade(target_grade: int, record: CompetencyRecord) -> GradeAnalysis:

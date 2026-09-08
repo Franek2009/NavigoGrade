@@ -18,3 +18,5 @@ First public alpha release.
   current percentage and average calculations use evaluated competencies.
 - Removed attempted-competency input and distinguished existing level-0,
   existing acquired, and future competency actions in recommendations.
+- Added full-course future simulation for reaching or maintaining a selected
+  grade and planning toward the next higher grade.

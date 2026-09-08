@@ -103,6 +103,19 @@ Input must satisfy `evaluated <= total_overall`. Current grade calculations use
 only evaluated competencies. The overall total is used by recommendation
 planning to determine whether future competencies are available.
 
+## Future planning
+
+NavigoGrade simulates the final course/year state by assigning every remaining
+future competency a level from 0 through 3. If the selected grade is not yet
+met, it finds a minimum-action combination of future results and improvements to
+existing competencies. If the grade is already met, it finds the weakest future
+level distribution that still preserves it. The same outlook also reports the
+current distance and a final-state plan for the next higher grade, when one
+exists.
+
+Future simulation does not change the current-grade calculation: current
+percentage and average always use only competencies evaluated so far.
+
 ## Current limitations
 
 - This is an early alpha and may still contain defects or incomplete wording.

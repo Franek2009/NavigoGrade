@@ -17,8 +17,9 @@ from .calculator import (
     average_competency_level,
     grade_requirements_met,
     highest_grade_met,
+    future_outlook,
 )
-from .cli import _format_upgrade, _polish_plural
+from .cli import _format_future_outlook, _format_upgrade, _polish_plural
 from .rules import GRADE_REQUIREMENTS
 
 
@@ -57,6 +58,9 @@ def format_results(record: CompetencyRecord, target_grade: int) -> str:
     lines.extend(["", "Co trzeba poprawić"])
     if grade_requirements_met(target_grade, record):
         lines.append(f"Spełniasz wymagania na ocenę {target_grade}.")
+        lines.extend(
+            ["", _format_future_outlook(future_outlook(target_grade, record), record.remaining_future)]
+        )
         return "\n".join(lines)
 
     if analysis.additional_acquired_needed:
@@ -80,6 +84,9 @@ def format_results(record: CompetencyRecord, target_grade: int) -> str:
 
     if analysis.average_requirement_met is False and average is None:
         lines.append("Nie można obliczyć średniej bez podjętych kompetencji.")
+    lines.extend(
+        ["", _format_future_outlook(future_outlook(target_grade, record), record.remaining_future)]
+    )
     return "\n".join(lines)
 
 

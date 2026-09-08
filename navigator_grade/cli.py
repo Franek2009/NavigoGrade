@@ -1,10 +1,13 @@
 from .calculator import (
     CompetencyRecord,
+    FutureOutlook,
+    FuturePlan,
     UpgradeOption,
     acquisition_percentage,
     analyze_grade,
     average_competency_level,
     highest_grade_met,
+    future_outlook,
 )
 from .rules import GRADE_REQUIREMENTS
 
@@ -101,6 +104,65 @@ def _polish_plural(count: int, singular: str, few: str, many: str) -> str:
     return many
 
 
+def _format_future_actions(plan: FuturePlan) -> list[str]:
+    lines = []
+    for level, count in enumerate(plan.future_levels):
+        if count:
+            lines.append(f"→ {count} × przyszła kompetencja na poziomie {level}")
+    if plan.upgrades:
+        option = UpgradeOption(plan.upgrades, (), 0)
+        lines.extend(f"→ {part}" for part in _format_upgrade(option).split("\n→ "))
+    return lines
+
+
+def _format_future_outlook(outlook: FutureOutlook, remaining_future: int) -> str:
+    lines = []
+    if outlook.target_currently_met:
+        lines.append(f"Aby utrzymać {outlook.target_grade}:")
+        if outlook.target_plan is None:
+            lines.append("→ brak możliwego planu końcowego")
+        elif remaining_future == 0:
+            lines.append("→ nie pozostały żadne przyszłe kompetencje")
+        else:
+            lines.append(f"→ z pozostałych {remaining_future} kompetencji wystarczy:")
+            for level, count in enumerate(outlook.target_plan.future_levels):
+                if count:
+                    lines.append(f"   {count} × poziom {level}")
+    else:
+        lines.append(f"Aby zdobyć {outlook.target_grade}:")
+        if outlook.target_plan is None:
+            lines.append("→ osiągnięcie tej oceny nie jest możliwe")
+        else:
+            lines.extend(_format_future_actions(outlook.target_plan))
+
+    if outlook.next_grade is not None:
+        lines.extend(["", f"Do oceny {outlook.next_grade} brakuje:"])
+        next_analysis = outlook.next_grade_analysis
+        if next_analysis.acquisition_requirement_met is None:
+            lines.append("— brak ocenionych kompetencji do bieżącego porównania")
+        else:
+            if next_analysis.additional_acquired_needed:
+                lines.append(
+                    f"— {next_analysis.additional_acquired_needed} "
+                    "zdobytych kompetencji w bieżącym stanie"
+                )
+            if next_analysis.missing_level_points:
+                lines.append(
+                    f"— {next_analysis.missing_level_points} punktów poziomu "
+                    "w bieżącym stanie"
+                )
+            if (
+                next_analysis.acquisition_requirement_met
+                and next_analysis.average_requirement_met is not False
+            ):
+                lines.append("— obecnie spełniasz wymagania; plan końcowy:")
+        if outlook.next_grade_plan is None:
+            lines.append("→ osiągnięcie tej oceny nie jest możliwe")
+        else:
+            lines.extend(_format_future_actions(outlook.next_grade_plan))
+    return "\n".join(lines)
+
+
 def _read_interactively() -> tuple[CompetencyRecord, int]:
     total_overall = _read_positive_integer("Wszystkich kompetencji: ")
     levels = _read_levels(total_overall)
@@ -128,6 +190,7 @@ def run() -> None:
             print(f"Błąd: {error}")
 
     analysis = analyze_grade(target_grade, record)
+    outlook = future_outlook(target_grade, record)
     average = average_competency_level(record)
     current_grade = highest_grade_met(record)
     requirement = GRADE_REQUIREMENTS[target_grade]
@@ -192,3 +255,5 @@ def run() -> None:
         and analysis.average_requirement_met is not False
     ):
         print(f"\nSpełniasz wymagania na ocenę {target_grade}.")
+
+    print(f"\n{_format_future_outlook(outlook, record.remaining_future)}")

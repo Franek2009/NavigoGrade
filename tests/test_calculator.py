@@ -7,6 +7,7 @@ from navigator_grade.calculator import (
     average_competency_level,
     grade_requirements_met,
     highest_grade_met,
+    future_outlook,
 )
 
 
@@ -160,6 +161,63 @@ class PlannerTests(unittest.TestCase):
         self.assertFalse(analysis.average_requirement_met)
         self.assertEqual(analysis.additional_acquired_needed, 1)
         self.assertGreater(analysis.missing_level_points, 0)
+
+
+class FutureSimulationTests(unittest.TestCase):
+    def test_not_yet_met_target_gets_feasible_final_plan(self) -> None:
+        record = CompetencyRecord(10, 2, 1, 3, 2)
+
+        outlook = future_outlook(5, record)
+
+        self.assertFalse(outlook.target_currently_met)
+        self.assertIsNotNone(outlook.target_plan)
+        self.assertGreaterEqual(outlook.target_plan.final_acquisition_percentage, 80)
+        self.assertGreaterEqual(outlook.target_plan.final_average_level, 2.25)
+
+    def test_met_target_gets_weakest_maintenance_plan_without_upgrades(self) -> None:
+        record = CompetencyRecord(14, 0, 0, 0, 8)
+
+        outlook = future_outlook(5, record)
+
+        self.assertTrue(outlook.target_currently_met)
+        self.assertEqual(outlook.target_plan.future_levels, (0, 4, 2, 0))
+        self.assertEqual(outlook.target_plan.upgrades, ())
+        self.assertGreaterEqual(outlook.target_plan.final_average_level, 2.25)
+
+    def test_next_grade_includes_distance_and_reach_plan(self) -> None:
+        record = CompetencyRecord(10, 2, 1, 3, 2)
+
+        outlook = future_outlook(5, record)
+
+        self.assertEqual(outlook.next_grade, 6)
+        self.assertIsNotNone(outlook.next_grade_analysis)
+        self.assertIsNotNone(outlook.next_grade_plan)
+        self.assertGreaterEqual(outlook.next_grade_plan.final_average_level, 2.70)
+
+    def test_zero_remaining_future_uses_empty_distribution(self) -> None:
+        record = CompetencyRecord(10, 0, 0, 0, 10)
+
+        outlook = future_outlook(5, record)
+
+        self.assertEqual(outlook.target_plan.future_levels, (0, 0, 0, 0))
+        self.assertEqual(outlook.target_plan.action_count, 0)
+
+    def test_target_is_impossible_when_final_total_is_zero(self) -> None:
+        record = CompetencyRecord(0, 0, 0, 0, 0)
+
+        outlook = future_outlook(2, record)
+
+        self.assertFalse(outlook.target_currently_met)
+        self.assertIsNone(outlook.target_plan)
+
+    def test_exact_final_percentage_and_average_boundaries_are_accepted(self) -> None:
+        record = CompetencyRecord(20, 8, 0, 3, 9)
+
+        outlook = future_outlook(3, record)
+
+        self.assertTrue(outlook.target_currently_met)
+        self.assertEqual(outlook.target_plan.final_acquisition_percentage, 60.0)
+        self.assertEqual(outlook.target_plan.final_average_level, 1.65)
 
 
 if __name__ == "__main__":
