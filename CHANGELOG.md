@@ -2,6 +2,25 @@
 
 All notable changes to NavigoGrade are documented in this file.
 
+## [Unreleased]
+
+- Added a dependency-free, mobile-first Progressive Web App in the separate
+  `web/` directory.
+- Mirrored the Python grading, validation, and future-planning behavior in a
+  dedicated browser domain module.
+- Added an offline application shell, install metadata, responsive Polish UI,
+  and local static-server instructions.
+- Added automatic GitHub Pages deployment of the `web/` directory from `main`.
+
+## [1.0.0]
+
+First stable release.
+
+- Promoted the verified `v0.9.0-rc.1` codebase to stable status.
+- Confirmed packaging, console entry points, documentation, licensing, source
+  distribution contents, and the complete automated test suite.
+- Made no changes to grading, planning, domain, CLI, or GUI behavior.
+
 ## [0.9.0-rc.1]
 
 Release-candidate audit.

@@ -5,11 +5,11 @@ meets the requirements for a selected final grade under Navigo's
 competency-based grading rules. When requirements are missing, it calculates a
 minimal practical plan for acquiring additional competencies and improving
 existing competency levels. It includes both a terminal interface and a simple
-Tkinter graphical interface.
+Tkinter graphical interface. A separate mobile-first web frontend is also
+available as a static Progressive Web App.
 
-> **Release candidate warning:** `v0.9.0-rc.1` is a pre-release version. Results
-> should be checked against the current school statute before they are used for
-> an important decision.
+`v1.0.0` is the first stable release. Results should still be checked against
+the current school statute before they are used for an important decision.
 
 NavigoGrade is an independent, unofficial project. It is not affiliated with or
 endorsed by the school.
@@ -86,6 +86,33 @@ installation with:
 python -m tkinter
 ```
 
+### Web app
+
+The public PWA will be available at:
+
+<https://Franek2009.github.io/NavigoGrade/>
+
+GitHub Pages deploys the contents of `web/` automatically after a push to
+`main`. In the repository settings, select **GitHub Actions** as the Pages
+source before the first deployment.
+
+The web frontend has no build step or server dependency. Start a standard
+Python static server from its separate directory:
+
+```bash
+cd web
+python -m http.server 8000
+```
+
+Open <http://localhost:8000> on the same computer. To use it on a phone in the
+same network, open the computer's local address, for example
+`http://192.168.x.x:8000`.
+
+The calculator works over a local-network HTTP connection. Browser installation
+and offline service-worker support normally require HTTPS when the address is
+not `localhost`; this is a browser security restriction. All calculations run
+locally in the browser and the frontend sends no competency data to a server.
+
 ## Input
 
 The fastest input format contains the expected total number of competencies,
@@ -160,14 +187,14 @@ percentage and average always use only competencies evaluated so far.
 
 ## Current limitations
 
-- This is a release candidate and may still contain defects or incomplete
-  wording.
 - The application relies on aggregate counts entered manually by the user.
 - Recommendations are mathematical plans based on the configured rules; they do
   not predict how or when a competency can be reassessed.
 - The interfaces are currently written in Polish.
 - The GUI is an intentionally simple presentation layer over the same
   calculator used by the terminal application.
+- The static web frontend mirrors the Python calculator in JavaScript. Python
+  remains the reference implementation for grading and planner behavior.
 
 ## Development
 
