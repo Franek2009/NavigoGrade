@@ -1,14 +1,15 @@
 # NavigoGrade
 
-NavigoGrade is an unofficial terminal application that checks whether a student
+NavigoGrade is an unofficial Python application that checks whether a student
 meets the requirements for a selected final grade under Navigo's
 competency-based grading rules. When requirements are missing, it calculates a
 minimal practical plan for acquiring additional competencies and improving
-existing competency levels.
+existing competency levels. It includes both a terminal interface and a simple
+Tkinter graphical interface.
 
-> **Alpha warning:** `v0.3.0-alpha.1` is an early test release. Results should
-> be checked against the current school statute before they are used for an
-> important decision.
+> **Beta candidate warning:** `v0.4.0-beta.1` is a pre-release version. Results
+> should be checked against the current school statute before they are used for
+> an important decision.
 
 NavigoGrade is an independent, unofficial project. It is not affiliated with or
 endorsed by the school.
@@ -17,26 +18,34 @@ endorsed by the school.
 
 - Python 3.10 or newer
 - A terminal for the CLI
-- Tkinter for the graphical interface (normally included with Python)
+- Tkinter for the graphical interface
 
 The project uses only the Python standard library.
 
-## Install and run
+## Quick Start
 
-Clone the repository, enter its directory, and run the application:
+Clone the repository and enter its directory:
 
 ```bash
 git clone <repository-url>
 cd NavigoGrade
-python main.py
 ```
 
 Depending on your system, the Python command may be `python3` instead of
 `python`.
 
-### Run the GUI
+### Terminal interface
 
-Launch the first graphical interface with:
+```bash
+python main.py
+```
+
+Enter the six values shown by the prompt, or press Enter to switch to guided
+input.
+
+### Graphical interface
+
+Launch the Tkinter interface with:
 
 ```bash
 python -m navigator_grade.gui
@@ -45,7 +54,28 @@ python -m navigator_grade.gui
 In the GUI, empty level fields are treated as zero. The total number of
 competencies and the target grade are still required.
 
-The terminal interface remains available through `python main.py`.
+#### Installing Tkinter on Linux
+
+Some Linux distributions package Tkinter separately from Python. Install the
+package for your distribution, for example:
+
+```bash
+# Debian or Ubuntu
+sudo apt install python3-tk
+
+# Fedora
+sudo dnf install python3-tkinter
+
+# Arch Linux
+sudo pacman -S tk
+```
+
+Package names can vary with the distribution or Python version. Verify the
+installation with:
+
+```bash
+python -m tkinter
+```
 
 ## Input
 
@@ -121,12 +151,12 @@ percentage and average always use only competencies evaluated so far.
 
 ## Current limitations
 
-- This is an early alpha and may still contain defects or incomplete wording.
+- This is a beta candidate and may still contain defects or incomplete wording.
 - The application relies on aggregate counts entered manually by the user.
 - Recommendations are mathematical plans based on the configured rules; they do
   not predict how or when a competency can be reassessed.
 - The interfaces are currently written in Polish.
-- The GUI is an early, intentionally simple presentation layer over the same
+- The GUI is an intentionally simple presentation layer over the same
   calculator used by the terminal application.
 
 ## Run the tests

@@ -2,6 +2,21 @@
 
 All notable changes to NavigoGrade are documented in this file.
 
+## [0.4.0-beta.1]
+
+Polished beta candidate.
+
+- Reorganized GUI results into clear sections for the current state, target,
+  reaching and maintaining the target, and the next grade.
+- Added concise visual success and failure indicators and improved GUI spacing
+  and hierarchy.
+- Clarified Quick Start instructions for both the terminal and graphical
+  interfaces.
+- Documented Tkinter installation and verification on common Linux
+  distributions.
+- Retained the terminal workflow and the shared, tested grading and planning
+  core without changing its rules or behavior.
+
 ## [0.3.0-alpha.1]
 
 First public alpha release.

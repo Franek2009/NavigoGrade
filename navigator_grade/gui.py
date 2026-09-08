@@ -19,7 +19,7 @@ from .calculator import (
     highest_grade_met,
     future_outlook,
 )
-from .cli import _format_future_outlook, _format_upgrade, _polish_plural
+from .cli import _format_future_actions
 from .rules import GRADE_REQUIREMENTS
 
 
@@ -48,59 +48,69 @@ def format_results(record: CompetencyRecord, target_grade: int) -> str:
     average_text = f"{average:.2f}" if average is not None else "brak"
     percentage = acquisition_percentage(record)
     percentage_text = f"{percentage:.2f}%" if percentage is not None else "brak danych"
+    outlook = future_outlook(target_grade, record)
     lines = [
-        f"Ocena obecna: {current_text}",
+        "Obecnie",
+        f"Ocena: {current_text}",
         f"Zdobyte kompetencje: {record.acquired}/{record.evaluated}",
         f"Procent zdobytych: {percentage_text}",
         f"Średnia poziomu: {average_text}",
         "",
-        f"Wymagania na ocenę {target_grade}:",
+        "Cel",
+        f"Ocena docelowa: {target_grade}",
         (
-            "✓ procent zdobytych kompetencji"
+            "✓ Wymagany procent kompetencji jest spełniony"
             if analysis.acquisition_requirement_met is True
-            else "✗ procent zdobytych kompetencji"
+            else "✗ Wymagany procent kompetencji nie jest spełniony"
             if analysis.acquisition_requirement_met is False
-            else "— procent zdobytych kompetencji: brak danych"
+            else "— Procent kompetencji: brak danych"
         ),
     ]
     if analysis.average_requirement_met is not None:
         mark = "✓" if analysis.average_requirement_met else "✗"
         lines.append(
-            f"{mark} średnia co najmniej {requirement.minimum_average_level:.2f}"
+            f"{mark} Wymagana średnia: {requirement.minimum_average_level:.2f}"
         )
 
-    lines.extend(["", "Co trzeba poprawić"])
+    lines.extend(["", "Jak osiągnąć"])
     if grade_requirements_met(target_grade, record):
-        lines.append(f"Spełniasz wymagania na ocenę {target_grade}.")
-        lines.extend(
-            ["", _format_future_outlook(future_outlook(target_grade, record), record.remaining_future)]
-        )
-        return "\n".join(lines)
+        lines.append(f"✓ Spełniasz wymagania na ocenę {target_grade}.")
+    elif outlook.target_plan is None:
+        lines.append("✗ Brak możliwego planu końcowego.")
+    else:
+        lines.extend(_format_future_actions(outlook.target_plan))
 
-    if analysis.additional_acquired_needed:
-        noun = _polish_plural(
-            analysis.additional_acquired_needed,
-            "dodatkową kompetencję",
-            "dodatkowe kompetencje",
-            "dodatkowych kompetencji",
-        )
-        lines.append(
-            f"Zdobądź {analysis.additional_acquired_needed} {noun}."
-        )
-    if analysis.missing_level_points:
-        noun = "punktu" if analysis.missing_level_points == 1 else "punktów"
-        lines.append(f"Brakuje {analysis.missing_level_points} {noun} poziomu.")
+    lines.extend(["", "Jak utrzymać"])
+    if not outlook.target_currently_met:
+        lines.append("— Ta sekcja będzie dostępna po osiągnięciu celu.")
+    elif record.remaining_future == 0:
+        lines.append("✓ Nie pozostały żadne przyszłe kompetencje.")
+    elif outlook.target_plan is None:
+        lines.append("✗ Brak możliwego planu utrzymania oceny.")
+    else:
+        lines.append(f"Z pozostałych {record.remaining_future} kompetencji wystarczy:")
+        for level, count in enumerate(outlook.target_plan.future_levels):
+            if count:
+                lines.append(f"→ {count} × poziom {level}")
 
-    for index, option in enumerate(analysis.upgrade_options):
-        label = "Najprościej" if index == 0 else "Alternatywnie"
-        formatted = _format_upgrade(option).replace("\n→ ", "\n  → ")
-        lines.append(f"{label}:\n  → {formatted}")
-
-    if analysis.average_requirement_met is False and average is None:
-        lines.append("Nie można obliczyć średniej bez podjętych kompetencji.")
-    lines.extend(
-        ["", _format_future_outlook(future_outlook(target_grade, record), record.remaining_future)]
-    )
+    lines.extend(["", "Do następnej oceny"])
+    if outlook.next_grade is None:
+        lines.append("✓ To najwyższa dostępna ocena.")
+    elif outlook.next_grade_plan is None:
+        lines.append(f"✗ Ocena {outlook.next_grade} nie jest osiągalna.")
+    else:
+        lines.append(f"Ocena {outlook.next_grade}:")
+        next_analysis = outlook.next_grade_analysis
+        if next_analysis.additional_acquired_needed:
+            lines.append(
+                f"→ Brakuje {next_analysis.additional_acquired_needed} "
+                "zdobytych kompetencji obecnie"
+            )
+        if next_analysis.missing_level_points:
+            lines.append(
+                f"→ Brakuje {next_analysis.missing_level_points} punktów poziomu obecnie"
+            )
+        lines.extend(_format_future_actions(outlook.next_grade_plan))
     return "\n".join(lines)
 
 
@@ -110,16 +120,23 @@ class NavigoGradeApp:
         self.root.title("NavigoGrade")
         self.root.minsize(560, 620)
 
-        container = ttk.Frame(root, padding=16)
+        container = ttk.Frame(root, padding=20)
         container.grid(sticky="nsew")
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
         container.columnconfigure(1, weight=1)
-        container.rowconfigure(9, weight=1)
+        container.rowconfigure(3, weight=1)
 
         ttk.Label(container, text="NavigoGrade", font=("TkDefaultFont", 18, "bold")).grid(
-            row=0, column=0, columnspan=2, sticky="w", pady=(0, 12)
+            row=0, column=0, columnspan=2, sticky="w", pady=(0, 4)
         )
+        ttk.Label(
+            container, text="Sprawdź ocenę i zobacz najprostszy plan działania"
+        ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(0, 14))
+
+        form = ttk.LabelFrame(container, text="Dane", padding=12)
+        form.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(0, 14))
+        form.columnconfigure(1, weight=1)
 
         labels = (
             "Wszystkich kompetencji",
@@ -130,28 +147,35 @@ class NavigoGradeApp:
         )
         self.entries: list[ttk.Entry] = []
         for row, label in enumerate(labels, start=1):
-            ttk.Label(container, text=label).grid(
+            ttk.Label(form, text=label).grid(
                 row=row, column=0, sticky="w", padx=(0, 12), pady=3
             )
-            entry = ttk.Entry(container)
+            entry = ttk.Entry(form)
             entry.grid(row=row, column=1, sticky="ew", pady=3)
             self.entries.append(entry)
 
-        ttk.Label(container, text="Cel").grid(
-            row=7, column=0, sticky="w", padx=(0, 12), pady=3
+        ttk.Label(form, text="Cel").grid(
+            row=6, column=0, sticky="w", padx=(0, 12), pady=3
         )
         self.target = ttk.Combobox(
-            container, values=tuple(GRADE_REQUIREMENTS), state="readonly"
+            form, values=tuple(GRADE_REQUIREMENTS), state="readonly"
         )
         self.target.set("6")
-        self.target.grid(row=7, column=1, sticky="ew", pady=3)
+        self.target.grid(row=6, column=1, sticky="ew", pady=3)
 
-        ttk.Button(container, text="Oblicz", command=self.calculate).grid(
-            row=8, column=0, columnspan=2, pady=12
+        ttk.Button(form, text="Oblicz", command=self.calculate).grid(
+            row=7, column=0, columnspan=2, pady=(12, 0)
         )
 
-        self.results = tk.Text(container, wrap="word", height=20, state="disabled")
-        self.results.grid(row=9, column=0, columnspan=2, sticky="nsew")
+        self.results = tk.Text(
+            container, wrap="word", height=22, state="disabled", padx=12, pady=10
+        )
+        self.results.grid(row=3, column=0, columnspan=2, sticky="nsew")
+        self.results.tag_configure(
+            "heading", font=("TkDefaultFont", 12, "bold"), spacing1=8
+        )
+        self.results.tag_configure("success", foreground="#18733c")
+        self.results.tag_configure("failure", foreground="#b3261e")
         self.entries[0].focus_set()
 
     def calculate(self) -> None:
@@ -174,6 +198,26 @@ class NavigoGradeApp:
         self.results.configure(state="normal")
         self.results.delete("1.0", tk.END)
         self.results.insert("1.0", result)
+        for heading in (
+            "Obecnie", "Cel", "Jak osiągnąć", "Jak utrzymać", "Do następnej oceny"
+        ):
+            start = self.results.search(heading, "1.0", stopindex=tk.END)
+            if start:
+                self.results.tag_add("heading", start, f"{start} lineend")
+        position = "1.0"
+        while True:
+            position = self.results.search("✓", position, stopindex=tk.END)
+            if not position:
+                break
+            self.results.tag_add("success", position, f"{position} lineend")
+            position = f"{position}+1c"
+        position = "1.0"
+        while True:
+            position = self.results.search("✗", position, stopindex=tk.END)
+            if not position:
+                break
+            self.results.tag_add("failure", position, f"{position} lineend")
+            position = f"{position}+1c"
         self.results.configure(state="disabled")
 
 

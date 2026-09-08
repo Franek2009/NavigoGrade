@@ -29,10 +29,10 @@ class GuiInputParsingTests(unittest.TestCase):
 class GuiResultFormattingTests(unittest.TestCase):
     def test_shows_success_for_met_target(self) -> None:
         result = format_results(CompetencyRecord(10, 0, 0, 0, 10), 6)
-        self.assertIn("Ocena obecna: 6", result)
+        self.assertIn("Obecnie\nOcena: 6", result)
         self.assertIn("Zdobyte kompetencje: 10/10", result)
         self.assertIn("Procent zdobytych: 100.00%", result)
-        self.assertIn("Spełniasz wymagania na ocenę 6.", result)
+        self.assertIn("✓ Spełniasz wymagania na ocenę 6.", result)
 
     def test_empty_state_shows_unavailable_current_values(self) -> None:
         result = format_results(CompetencyRecord(10, 0, 0, 0, 0), 4)
@@ -41,14 +41,27 @@ class GuiResultFormattingTests(unittest.TestCase):
 
     def test_recommendations_come_from_corrected_planner(self) -> None:
         result = format_results(CompetencyRecord(10, 2, 1, 3, 2), 5)
-        self.assertIn("Co trzeba poprawić", result)
-        self.assertIn("Najprościej", result)
+        self.assertIn("Jak osiągnąć", result)
+        self.assertIn("→ 2 × przyszła kompetencja na poziomie 2", result)
 
     def test_shows_maintenance_and_next_grade_motivation(self) -> None:
         result = format_results(CompetencyRecord(14, 0, 0, 0, 8), 5)
-        self.assertIn("Aby utrzymać 5:", result)
-        self.assertIn("Do oceny 6 brakuje:", result)
-        self.assertIn("obecnie spełniasz wymagania; plan końcowy", result)
+        self.assertIn("Jak utrzymać", result)
+        self.assertIn("Z pozostałych 6 kompetencji wystarczy:", result)
+        self.assertIn("Do następnej oceny\nOcena 6:", result)
+
+    def test_uses_all_five_result_sections_and_status_indicators(self) -> None:
+        result = format_results(CompetencyRecord(10, 2, 1, 3, 2), 5)
+        for heading in (
+            "Obecnie",
+            "Cel",
+            "Jak osiągnąć",
+            "Jak utrzymać",
+            "Do następnej oceny",
+        ):
+            self.assertIn(heading, result)
+        self.assertIn("✗ Wymagany procent kompetencji", result)
+        self.assertIn("— Ta sekcja będzie dostępna", result)
 
 
 if __name__ == "__main__":
