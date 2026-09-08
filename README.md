@@ -14,7 +14,50 @@ the current school statute before they are used for an important decision.
 NavigoGrade is an independent, unofficial project. It is not affiliated with or
 endorsed by the school.
 
-## Requirements
+## Use NavigoGrade
+
+Open the public PWA:
+
+<https://Franek2009.github.io/NavigoGrade/>
+
+It works directly in a mobile or desktop browser. All calculations run locally
+in the browser and the frontend sends no competency data to a server.
+
+## Features
+
+- Checks the current grade against Navigo's competency thresholds.
+- Shows acquisition percentage and average competency level.
+- Recommends a minimum practical route to the selected grade.
+- Plans how to maintain the target and how to reach the next grade.
+- Works as a mobile-first PWA, terminal application, or Tkinter GUI.
+
+## Run the web app locally
+
+The web frontend has no build step or server dependency. Start a standard
+Python static server from its separate directory:
+
+```bash
+git clone https://github.com/Franek2009/NavigoGrade.git
+cd NavigoGrade
+cd web
+python -m http.server 8000
+```
+
+Open <http://localhost:8000> on the same computer. To use it on a phone in the
+same network, open the computer's local address, for example
+`http://192.168.x.x:8000`.
+
+The calculator works over a local-network HTTP connection. Browser installation
+and offline service-worker support normally require HTTPS when the address is
+not `localhost`; this is a browser security restriction.
+
+GitHub Pages deploys the contents of `web/` automatically after a push to
+`main`. When setting up a fork, select **GitHub Actions** as the Pages source in
+the repository settings.
+
+## Python desktop applications
+
+### Requirements
 
 - Python 3.10 or newer
 - A terminal for the CLI
@@ -22,23 +65,16 @@ endorsed by the school.
 
 The project uses only the Python standard library.
 
-## Quick Start
-
-Clone the repository and enter its directory:
+Clone the repository, enter its directory, and install NavigoGrade locally:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Franek2009/NavigoGrade.git
 cd NavigoGrade
+python -m pip install .
 ```
 
 Depending on your system, the Python command may be `python3` instead of
 `python`.
-
-Install NavigoGrade locally:
-
-```bash
-python -m pip install .
-```
 
 ### Terminal interface
 
@@ -86,34 +122,7 @@ installation with:
 python -m tkinter
 ```
 
-### Web app
-
-The public PWA will be available at:
-
-<https://Franek2009.github.io/NavigoGrade/>
-
-GitHub Pages deploys the contents of `web/` automatically after a push to
-`main`. In the repository settings, select **GitHub Actions** as the Pages
-source before the first deployment.
-
-The web frontend has no build step or server dependency. Start a standard
-Python static server from its separate directory:
-
-```bash
-cd web
-python -m http.server 8000
-```
-
-Open <http://localhost:8000> on the same computer. To use it on a phone in the
-same network, open the computer's local address, for example
-`http://192.168.x.x:8000`.
-
-The calculator works over a local-network HTTP connection. Browser installation
-and offline service-worker support normally require HTTPS when the address is
-not `localhost`; this is a browser security restriction. All calculations run
-locally in the browser and the frontend sends no competency data to a server.
-
-## Input
+## Terminal input
 
 The fastest input format contains the expected total number of competencies,
 the evaluated counts at levels 0 through 3, and the target grade:
