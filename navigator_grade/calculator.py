@@ -55,14 +55,21 @@ class CompetencyRecord:
 
 @dataclass(frozen=True)
 class UpgradeOption:
-    """A way to gain level-points by moving acquired competencies to level 3."""
+    """A combined acquisition and upgrade plan."""
 
     upgrades: tuple[tuple[int, int], ...]
     points_gained: int
+    acquisitions: tuple[tuple[int, int], ...] = ()
 
     @property
     def competencies_changed(self) -> int:
         return sum(count for _, count in self.upgrades)
+
+    @property
+    def total_actions(self) -> int:
+        return self.competencies_changed + sum(
+            count for _, count in self.acquisitions
+        )
 
 
 @dataclass(frozen=True)
@@ -114,7 +121,7 @@ def _ceiling_product(value: float, count: int, divisor: int = 1) -> int:
 
 
 def _upgrade_options(
-    record: CompetencyRecord, missing_points: int, limit: int = 3
+    record: CompetencyRecord, missing_points: int, limit: int | None = 3
 ) -> tuple[UpgradeOption, ...]:
     if missing_points <= 0:
         return ()
@@ -137,14 +144,103 @@ def _upgrade_options(
             )
             candidates.append(UpgradeOption(upgrades, points))
 
-    candidates.sort(
+    def counts_by_level(option: UpgradeOption) -> tuple[int, int, int]:
+        counts = dict(option.upgrades)
+        return tuple(counts.get(level, 0) for level in range(3))
+
+    non_dominated = []
+    for candidate in candidates:
+        candidate_counts = counts_by_level(candidate)
+        dominated = any(
+            all(other_count <= candidate_count for other_count, candidate_count in zip(
+                counts_by_level(other), candidate_counts
+            ))
+            and counts_by_level(other) != candidate_counts
+            for other in candidates
+        )
+        if not dominated:
+            non_dominated.append(candidate)
+
+    non_dominated.sort(
         key=lambda option: (
             option.competencies_changed,
             option.points_gained - missing_points,
             option.upgrades,
         )
     )
-    return tuple(candidates[:limit])
+    return tuple(non_dominated if limit is None else non_dominated[:limit])
+
+
+def _acquisition_distributions(count: int):
+    for level_0 in range(count + 1):
+        for level_1 in range(count - level_0 + 1):
+            for level_2 in range(count - level_0 - level_1 + 1):
+                level_3 = count - level_0 - level_1 - level_2
+                yield level_0, level_1, level_2, level_3
+
+
+def _combined_options(
+    record: CompetencyRecord,
+    additional_acquired: int,
+    required_level_sum: int,
+    limit: int = 3,
+) -> tuple[UpgradeOption, ...]:
+    projected_attempted = max(
+        record.attempted, record.acquired + additional_acquired
+    )
+    candidates: list[UpgradeOption] = []
+
+    for acquired_levels in _acquisition_distributions(additional_acquired):
+        projected_level_sum = record.level_sum + sum(
+            level * count for level, count in enumerate(acquired_levels)
+        )
+        missing_points = max(0, required_level_sum - projected_level_sum)
+        upgrade_options = _upgrade_options(record, missing_points, limit=None)
+        if missing_points == 0:
+            upgrade_options = (UpgradeOption((), 0),)
+
+        acquisitions = tuple(
+            (level, count)
+            for level, count in enumerate(acquired_levels)
+            if count
+        )
+        acquisition_points = projected_level_sum - record.level_sum
+        for upgrades in upgrade_options:
+            candidates.append(
+                UpgradeOption(
+                    upgrades.upgrades,
+                    acquisition_points + upgrades.points_gained,
+                    acquisitions,
+                )
+            )
+
+    def excess(option: UpgradeOption) -> int:
+        return record.level_sum + option.points_gained - required_level_sum
+
+    non_dominated = [
+        candidate
+        for candidate in candidates
+        if not any(
+            other is not candidate
+            and other.total_actions <= candidate.total_actions
+            and excess(other) <= excess(candidate)
+            and (
+                other.total_actions < candidate.total_actions
+                or excess(other) < excess(candidate)
+            )
+            for other in candidates
+        )
+    ]
+    non_dominated.sort(
+        key=lambda option: (
+            option.total_actions,
+            excess(option),
+            len(option.acquisitions) + len(option.upgrades),
+            option.acquisitions,
+            option.upgrades,
+        )
+    )
+    return tuple(non_dominated[:limit])
 
 
 def analyze_grade(target_grade: int, record: CompetencyRecord) -> GradeAnalysis:
@@ -167,8 +263,11 @@ def analyze_grade(target_grade: int, record: CompetencyRecord) -> GradeAnalysis:
             (),
         )
 
-    average = average_competency_level(record)
-    if average is None:
+    current_average = average_competency_level(record)
+    projected_attempted = max(
+        record.attempted, record.acquired + additional_acquired
+    )
+    if projected_attempted == 0:
         return GradeAnalysis(
             target_grade,
             acquisition_met,
@@ -180,17 +279,25 @@ def analyze_grade(target_grade: int, record: CompetencyRecord) -> GradeAnalysis:
         )
 
     required_level_sum = _ceiling_product(
-        requirement.minimum_average_level, record.attempted
+        requirement.minimum_average_level, projected_attempted
     )
     missing_points = max(0, required_level_sum - record.level_sum)
+    options = (
+        _upgrade_options(record, missing_points)
+        if additional_acquired == 0
+        else _combined_options(
+            record, additional_acquired, required_level_sum
+        )
+    )
     return GradeAnalysis(
         target_grade,
         acquisition_met,
-        missing_points == 0,
+        current_average is not None
+        and current_average >= requirement.minimum_average_level,
         additional_acquired,
         required_level_sum,
         missing_points,
-        _upgrade_options(record, missing_points),
+        options,
     )
 
 

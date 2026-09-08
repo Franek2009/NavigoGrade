@@ -190,6 +190,27 @@ class RecommendationTests(unittest.TestCase):
         ]
         self.assertEqual(changed_counts, sorted(changed_counts))
 
+    def test_dominated_same_path_option_is_removed(self) -> None:
+        record = CompetencyRecord(10, 10, 0, 4, 0, 6)
+
+        analysis = analyze_grade(6, record)
+
+        self.assertEqual(analysis.missing_level_points, 5)
+        self.assertEqual(
+            [option.upgrades for option in analysis.upgrade_options],
+            [((1, 3),)],
+        )
+
+    def test_distinct_pure_and_mixed_upgrade_paths_are_preserved(self) -> None:
+        record = CompetencyRecord(10, 10, 0, 3, 2, 5)
+
+        analysis = analyze_grade(6, record)
+
+        self.assertEqual(analysis.missing_level_points, 5)
+        options = [option.upgrades for option in analysis.upgrade_options]
+        self.assertIn(((1, 3),), options)
+        self.assertIn(((1, 2), (2, 1)), options)
+
     def test_grade_two_analysis_has_no_average_deficit(self) -> None:
         record = CompetencyRecord(20, 11, 11, 0, 0, 0)
 
@@ -201,15 +222,71 @@ class RecommendationTests(unittest.TestCase):
         self.assertIsNone(analysis.missing_level_points)
         self.assertEqual(analysis.upgrade_options, ())
 
-    def test_zero_attempts_has_no_numeric_average_recommendation(self) -> None:
+    def test_zero_attempts_projects_required_acquisitions_before_average(self) -> None:
         record = CompetencyRecord(5, 0, 0, 0, 0, 0)
 
         analysis = analyze_grade(3, record)
 
         self.assertFalse(analysis.average_requirement_met)
-        self.assertIsNone(analysis.required_level_sum)
-        self.assertIsNone(analysis.missing_level_points)
-        self.assertEqual(analysis.upgrade_options, ())
+        self.assertEqual(analysis.additional_acquired_needed, 3)
+        self.assertEqual(analysis.required_level_sum, 5)
+        self.assertEqual(analysis.missing_level_points, 5)
+        self.assertTrue(analysis.upgrade_options)
+
+    def test_new_acquisition_increases_average_denominator_when_needed(self) -> None:
+        record = CompetencyRecord(10, 7, 0, 0, 7, 0)
+
+        analysis = analyze_grade(5, record)
+
+        self.assertFalse(analysis.acquisition_requirement_met)
+        self.assertFalse(analysis.average_requirement_met)
+        self.assertEqual(analysis.additional_acquired_needed, 1)
+        self.assertEqual(analysis.required_level_sum, 18)  # ceil(2.25 * 8)
+        self.assertEqual(analysis.missing_level_points, 4)
+
+    def test_existing_unacquired_attempt_does_not_increase_denominator(self) -> None:
+        record = CompetencyRecord(10, 8, 0, 0, 7, 0)
+
+        analysis = analyze_grade(5, record)
+
+        self.assertEqual(analysis.additional_acquired_needed, 1)
+        self.assertEqual(analysis.required_level_sum, 18)  # still 8 attempted
+        self.assertEqual(analysis.missing_level_points, 4)
+
+    def test_new_competency_levels_are_optimized_with_existing_upgrades(self) -> None:
+        record = CompetencyRecord(10, 7, 0, 0, 0, 7)
+
+        analysis = analyze_grade(6, record)
+
+        self.assertEqual(analysis.additional_acquired_needed, 2)
+        self.assertEqual(analysis.required_level_sum, 25)  # ceil(2.70 * 9)
+        self.assertEqual(analysis.missing_level_points, 4)
+        self.assertEqual(analysis.upgrade_options[0].acquisitions, ((2, 2),))
+        self.assertEqual(analysis.upgrade_options[0].upgrades, ())
+        self.assertEqual(analysis.upgrade_options[0].total_actions, 2)
+
+    def test_combined_plan_optimizes_acquisition_level_and_existing_upgrades(self) -> None:
+        record = CompetencyRecord(14, 12, 0, 4, 0, 8)
+
+        analysis = analyze_grade(6, record)
+
+        self.assertEqual(analysis.additional_acquired_needed, 1)
+        self.assertEqual(analysis.required_level_sum, 36)  # ceil(2.70 * 13)
+        best = analysis.upgrade_options[0]
+        self.assertEqual(best.acquisitions, ((2, 1),))
+        self.assertEqual(best.upgrades, ((1, 3),))
+        self.assertEqual(best.total_actions, 4)
+        self.assertEqual(record.level_sum + best.points_gained, 36)
+
+    def test_conservative_level_zero_plan_is_removed_when_more_costly(self) -> None:
+        record = CompetencyRecord(14, 12, 0, 4, 0, 8)
+
+        options = analyze_grade(6, record).upgrade_options
+
+        self.assertNotIn(
+            (((0, 1),), ((1, 4),)),
+            [(option.acquisitions, option.upgrades) for option in options],
+        )
 
     def test_highest_grade_met_matches_example(self) -> None:
         record = CompetencyRecord(12, 12, 0, 1, 3, 8)
