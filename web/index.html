@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#173f35">
+    <meta name="description" content="Sprawdź ocenę i zaplanuj kolejne kompetencje w NavigoGrade.">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <title>NavigoGrade</title>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="shell">
+        <p class="eyebrow">Nawigator ocen</p>
+        <h1>NavigoGrade</h1>
+        <p class="lead">Sprawdź, gdzie jesteś i wybierz najprostszą drogę do celu.</p>
+      </div>
+    </header>
+
+    <main class="shell">
+      <form id="grade-form" class="panel form-panel" novalidate>
+        <div class="form-heading">
+          <div>
+            <p class="step">Twoje dane</p>
+            <h2>Kompetencje</h2>
+          </div>
+          <span class="privacy">Tylko na tym urządzeniu</span>
+        </div>
+
+        <label class="field field-wide">
+          <span>Wszystkich kompetencji</span>
+          <input id="total" name="total" type="number" min="0" step="1" inputmode="numeric" required placeholder="np. 12">
+          <small>Łączna liczba przewidziana na kurs lub rok.</small>
+        </label>
+
+        <fieldset>
+          <legend>Kompetencje ocenione do tej pory</legend>
+          <div class="level-grid">
+            <label class="level level-0">
+              <span>Poziom <strong>0</strong></span>
+              <input name="level0" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+            </label>
+            <label class="level level-1">
+              <span>Poziom <strong>1</strong></span>
+              <input name="level1" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+            </label>
+            <label class="level level-2">
+              <span>Poziom <strong>2</strong></span>
+              <input name="level2" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+            </label>
+            <label class="level level-3">
+              <span>Poziom <strong>3</strong></span>
+              <input name="level3" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+            </label>
+          </div>
+          <small>Puste pola oznaczają zero.</small>
+        </fieldset>
+
+        <label class="field field-wide">
+          <span>Cel</span>
+          <select id="target" name="target">
+            <option value="2">Ocena 2</option>
+            <option value="3">Ocena 3</option>
+            <option value="4">Ocena 4</option>
+            <option value="5">Ocena 5</option>
+            <option value="6" selected>Ocena 6</option>
+          </select>
+        </label>
+
+        <p id="form-error" class="error" role="alert" hidden></p>
+        <button type="submit">Oblicz mój plan <span aria-hidden="true">→</span></button>
+      </form>
+
+      <section id="results" class="results" aria-live="polite" hidden>
+        <div class="results-heading">
+          <p class="step">Twój wynik</p>
+          <h2>Plan działania</h2>
+        </div>
+        <div class="result-grid">
+          <article class="result-card current" id="current-card"></article>
+          <article class="result-card" id="target-card"></article>
+          <article class="result-card accent" id="reach-card"></article>
+          <article class="result-card" id="maintain-card"></article>
+          <article class="result-card" id="next-card"></article>
+        </div>
+      </section>
+
+      <p class="disclaimer">Projekt nieoficjalny. Zawsze porównaj wynik z aktualnym statutem szkoły.</p>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
